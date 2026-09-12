@@ -1,0 +1,6 @@
+import { redirect } from "next/navigation";
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { requirePermission } from "@/server/permissions/guards";
+import { PERMISSIONS } from "@/server/permissions/permissions";
+import { createRequestAction } from "@/server/services/request.actions";
+export default async function NewRequestPage(){let user;try{user=await requirePermission(PERMISSIONS.RECORD_CREATE)}catch{redirect("/login")};return <DashboardShell user={user}><section className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-6"><h2 className="text-xl font-semibold">Create request</h2><form action={createRequestAction} className="mt-6 space-y-4"><label className="block text-sm font-medium">Title<input name="title" required minLength={3} maxLength={120} className="mt-1 w-full rounded-lg border border-slate-300 p-3"/></label><label className="block text-sm font-medium">Description<textarea name="description" required minLength={10} maxLength={5000} rows={8} className="mt-1 w-full rounded-lg border border-slate-300 p-3"/></label><button className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white" type="submit">Submit request</button></form></section></DashboardShell>}

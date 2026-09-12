@@ -1,0 +1,1 @@
+export default function AuditLogsLoading() { return <div className="mx-auto max-w-6xl px-4 py-10"><div className="h-8 w-48 animate-pulse rounded bg-slate-200" /><div className="mt-6 h-32 animate-pulse rounded-2xl bg-slate-100" /><div className="mt-5 h-80 animate-pulse rounded-2xl bg-slate-100" /></div>; }

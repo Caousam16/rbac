@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  MANAGER
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum RequestStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  passwordHash  String?
+  firstName     String
+  lastName      String
+  role          Role          @default(USER)
+  status        AccountStatus @default(ACTIVE)
+  emailVerified DateTime?
+  authVersion   Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  managerAssignments      ManagerAssignment[]    @relation("ManagerAssignments")
+  userAssignments         ManagerAssignment[]    @relation("UserAssignments")
+  auditEvents             AuditLog[]             @relation("AuditActor")
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  requests                Request[]              @relation("RequestOwner")
+  requestDecisions        Request[]              @relation("RequestReviewer")
+
+  @@index([role, status])
+  @@index([createdAt])
+}
+
+model ManagerAssignment {
+  id        String   @id @default(cuid())
+  managerId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  manager User @relation("ManagerAssignments", fields: [managerId], references: [id], onDelete: Cascade)
+  user    User @relation("UserAssignments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([managerId, userId])
+  @@index([userId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, createdAt])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model AuthRateLimitEvent {
+  id        String   @id @default(cuid())
+  keyHash   String
+  action    String
+  createdAt DateTime @default(now())
+
+  @@index([action, keyHash, createdAt])
+  @@index([createdAt])
+}
+
+model Request {
+  id           String        @id @default(cuid())
+  userId       String
+  title        String
+  description  String
+  status       RequestStatus @default(SUBMITTED)
+  reviewedById String?
+  reviewNote   String?
+  reviewedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user       User  @relation("RequestOwner", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("RequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([reviewedById, reviewedAt])
+}

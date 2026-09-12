@@ -1,0 +1,2 @@
+"use client";
+export default function AdminUsersError({ reset }: { reset: () => void }) { return <div className="mx-auto max-w-3xl px-4 py-16"><div className="rounded-2xl border border-red-200 bg-white p-8 text-center"><h1 className="text-xl font-semibold text-slate-950">Unable to load user management</h1><p className="mt-2 text-sm text-slate-500">The request could not be completed. Internal details were not exposed.</p><button onClick={() => reset()} className="mt-5 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium">Try again</button></div></div>; }

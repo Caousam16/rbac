@@ -1,0 +1,2 @@
+"use client";
+export default function AuditLogsError({ reset }: { reset: () => void }) { return <div className="mx-auto max-w-3xl px-4 py-16 text-center"><h2 className="text-xl font-semibold text-slate-950">Unable to load audit logs</h2><p className="mt-2 text-sm text-slate-500">The audit data could not be loaded. Internal error details are not exposed.</p><button type="button" onClick={reset} className="dashboard-action-link mt-5">Try again</button></div>; }
