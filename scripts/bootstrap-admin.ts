@@ -19,7 +19,10 @@ const databaseUrl = requiredEnv("DATABASE_URL");
 const email = requiredEnv("BOOTSTRAP_ADMIN_EMAIL").trim().toLowerCase();
 const bootstrapPassword = requiredEnv("BOOTSTRAP_ADMIN_PASSWORD");
 
-const passwordCheck = registerSchema.shape.password.safeParse(bootstrapPassword);
+// Fixed: Safely parse using pick to preserve full string type-checking
+const passwordCheck = registerSchema
+  .pick({ password: true })
+  .safeParse({ password: bootstrapPassword });
 
 if (!passwordCheck.success) {
   throw new Error("BOOTSTRAP_ADMIN_PASSWORD does not meet password requirements.");
