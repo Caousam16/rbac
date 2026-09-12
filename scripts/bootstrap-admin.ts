@@ -42,7 +42,7 @@ async function main() {
       user.passwordHash !== null
     ) {
       throw new Error(
-        "Refusing bootstrap: account must already be an INACTIVE ADMIN with no credentials.",
+        "Refusing bootstrap: account must already be an INACTIVE ADMIN with no credentials",
       );
     }
 
