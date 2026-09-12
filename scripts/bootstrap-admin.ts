@@ -27,7 +27,7 @@ async function main() {
     throw new Error("Refusing bootstrap: account must already be an INACTIVE ADMIN with no credentials.");
   }
 
-  const passwordHash = await hashPassword(passwordCheck.data);
+  const passwordHash = await hashPassword(passwordCheck.data!);
   await prisma.$transaction([
     prisma.user.update({
       where: { id: user.id },
