@@ -20,14 +20,14 @@ if (!passwordCheck.success) {
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
 
-async function main() {
+async function main(email: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) throw new Error("Bootstrap admin does not exist. Run db:seed with the matching SEED_ADMIN_EMAIL first.");
   if (user.role !== Role.ADMIN || user.status !== AccountStatus.INACTIVE || user.passwordHash !== null) {
     throw new Error("Refusing bootstrap: account must already be an INACTIVE ADMIN with no credentials.");
   }
 
-  const passwordHash = await hashPassword(passwordCheck.data!);
+  const passwordHash = await hashPassword(password);
   await prisma.$transaction([
     prisma.user.update({
       where: { id: user.id },
@@ -41,4 +41,9 @@ async function main() {
   console.log(`Activated pre-seeded admin account: ${email}`);
 }
 
-main().finally(() => prisma.$disconnect());
+main(email, password)
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());
