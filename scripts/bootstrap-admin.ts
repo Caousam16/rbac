@@ -5,27 +5,24 @@ import { AccountStatus, Role } from "../generated/prisma/enums";
 import { hashPassword } from "../server/auth/password";
 import { registerSchema } from "../server/validators/auth";
 
-function requiredEnv(name: string): string {
-  const value = process.env[name];
+const databaseUrl = process.env.DATABASE_URL;
+const email = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
+const bootstrapPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
 
-  if (!value) {
-    throw new Error(`${name} is required.`);
-  }
-
-  return value;
+if (!databaseUrl || !email || !bootstrapPassword) {
+  throw new Error(
+    "DATABASE_URL, BOOTSTRAP_ADMIN_EMAIL, and BOOTSTRAP_ADMIN_PASSWORD are required."
+  );
 }
 
-const databaseUrl = requiredEnv("DATABASE_URL");
-const email = requiredEnv("BOOTSTRAP_ADMIN_EMAIL").trim().toLowerCase();
-const bootstrapPassword = requiredEnv("BOOTSTRAP_ADMIN_PASSWORD");
+const password: string = bootstrapPassword;
 
-// Fixed: Safely parse using pick to preserve full string type-checking
-const passwordCheck = registerSchema
-  .pick({ password: true })
-  .safeParse({ password: bootstrapPassword });
+const passwordCheck = registerSchema.shape.password.safeParse(password);
 
 if (!passwordCheck.success) {
-  throw new Error("BOOTSTRAP_ADMIN_PASSWORD does not meet password requirements.");
+  throw new Error(
+    "BOOTSTRAP_ADMIN_PASSWORD does not meet password requirements."
+  );
 }
 
 const prisma = new PrismaClient({
@@ -33,49 +30,55 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
+  const passwordHash = await hashPassword(password);
 
-  if (!user) {
-    throw new Error(
-      "Bootstrap admin does not exist. Run db:seed with the matching SEED_ADMIN_EMAIL first.",
-    );
-  }
-
-  if (
-    user.role !== Role.ADMIN ||
-    user.status !== AccountStatus.INACTIVE ||
-    user.passwordHash !== null
-  ) {
-    throw new Error(
-      "Refusing bootstrap: account must already be an INACTIVE ADMIN with no credentials.",
-    );
-  }
-
-  const passwordHash = await hashPassword(bootstrapPassword);
-
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: user.id },
+  await prisma.$transaction(async (tx) => {
+    const activation = await tx.user.updateMany({
+      where: {
+        email,
+        role: Role.ADMIN,
+        status: AccountStatus.INACTIVE,
+        passwordHash: null,
+      },
       data: {
         passwordHash,
         status: AccountStatus.ACTIVE,
         emailVerified: new Date(),
         authVersion: { increment: 1 },
       },
-    }),
-    prisma.auditLog.create({
+    });
+
+    if (activation.count !== 1) {
+      throw new Error(
+        "Refusing bootstrap: account must exist as an INACTIVE ADMIN with no credentials."
+      );
+    }
+
+    const user = await tx.user.findUniqueOrThrow({
+      where: { email },
+      select: { id: true },
+    });
+
+    await tx.auditLog.create({
       data: {
         actorId: user.id,
         action: "AUTH_ADMIN_BOOTSTRAPPED",
         targetType: "User",
         targetId: user.id,
       },
-    }),
-  ]);
+    });
+  });
 
   console.log(`Activated pre-seeded admin account: ${email}`);
 }
 
-main().finally(() => prisma.$disconnect());
+main()
+  .catch((error: unknown) => {
+    console.error(
+      error instanceof Error ? error.message : "Failed to bootstrap admin account."
+    );
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
