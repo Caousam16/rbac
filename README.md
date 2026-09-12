@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # RBAC Platform
 
 Production-oriented Next.js application foundation for USER, MANAGER, and ADMIN access levels.
@@ -110,3 +111,7 @@ Administrators with `ADMIN_VIEW_AUDIT_LOGS` can review bounded, filtered audit e
 ## Step 11: Request workflow
 
 The first application-specific workflow is a generic request domain. Users can submit and cancel their own pending requests, assigned managers can approve/reject requests within their explicit scope, and administrators have read-only system visibility. See `docs/STEP11_REQUEST_WORKFLOW.md`.
+=======
+# rbac
+trying to create an secured rbac as well as training my backend
+>>>>>>> a2b60f4953255a65941ca68125287f56d62887a9
